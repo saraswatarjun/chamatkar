@@ -1,0 +1,31 @@
+<% include partials/header %>
+    
+    <div class="container">
+        <header class="jumbotron">
+            <div class="container">
+                <h1>Welome to Campgrounds !!</h1>
+                <p>View our awesome hand picked camgrounds</p>
+                <p>
+                    <a class="btn btn-primary btn-large" href="/campgrounds/new">Add New Grounds</a>
+                </p>
+            </div>
+        </header>
+        <div class="row" style="display:flex; flex-wrap:wrap">
+            <%camgroundsData.forEach(function(grounds){ %>
+                <div class="col-md-3 col-sm-6">
+                    <div class="thumbnail">
+                        <img src="<%= grounds.url%>">
+                        <div class="caption">
+                            <h4>
+                                <%= grounds.name %>
+                            </h4>
+                        </div>
+                    <a href="/campgrounds/<%= grounds._id %>" class="btn btn-primary">More Info</a>
+                    </div>
+                </div>
+
+                <% }) %>
+        </div>
+
+    </div>
+    <% include partials/footer %>
