@@ -6,16 +6,43 @@ var mongoose = require("mongoose");
 var bodyParser = require("body-parser");
 var passport = require("passport");
 var LocalStrategy = require("passport-local");
+app.use(function (req, res, next) {
+    res.locals.currentUser = req.user;
+    next();
+});
+
+app.set("view engine", "ejs");
+
+/* models include*/
 var Campground = require("./models/campground");
 var Comment = require("./models/comment");
+var User = require("./models/user");
+
+/* passport configuration */
+app.use(require("express-session")({
+    secret: "Ollie Dachchund",
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+
+
+/*seed data*/
+
 var seedDB = require("./seeds");
 
-app.use(express.static(__dirname +"/public"));
+
+app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.urlencoded({
     extended: true
 }));
-app.set("view engine", "ejs");
-
 
 seedDB();
 
@@ -26,7 +53,7 @@ mongoose.Promise = global.Promise;
 var db = mongoose.connection;
 
 db.on('error', console.error.bind(console, 'connection error:'));
-console.log("crap");
+
 db.once('open', function callback() {
     console.log("Connected");
 });
@@ -39,105 +66,15 @@ app.get("/", function (req, res) {
     res.render("landing");
 });
 
-app.get("/campgrounds", function (req, res) {
-    Campground.find({}, function (err, campgrounds) {
+/*router information*/
+var commentRoutes = require("./routes/comments");
+var campgroundRoutes = require("./routes/campgrounds");
+var authRoutes = require("./routes/index");
 
-        if (err) {
-            console.log(" campgrounds route" + err);
-        } else {
-            res.render("campgrounds/campgrounds", {
-                camgroundsData: campgrounds
-            });
-        }
-    });
+app.use(authRoutes);
+app.use("/campgrounds/:id/comments", commentRoutes);
+app.use("/campgrounds", campgroundRoutes);
 
-
-});
-
-app.get("/campgrounds/new", function (req, res) {
-    res.render("campgrounds/new");
-});
-
-/* post route for adding campgrounds */
-app.post("/campgrounds", function (req, res) {
-    var newCampground = {
-        name: req.body.groundName,
-        url: req.body.groundUrl,
-        description: req.body.groundDescription
-    };
-    Campground.create({
-        name: newCampground.name,
-        url: newCampground.url,
-        description: newCampground.description
-    }, function (err, cGrounds) {
-        if (err) {
-            console.log("campground addition by user: " + err);
-        } else {
-            res.redirect("/campgrounds");
-        }
-    });
-
-});
-/* route to a particular campground */
-
-
-app.get("/campgrounds/:id", function (req, res) {
-
-    Campground.findById(req.params.id).populate("comments").exec(function (err, foundCampGround) {
-        if (err) {
-            console.log(err);
-        } else {
-            //console.log(foundCampGround);
-            res.render("campgrounds/show", {
-                campground: foundCampGround
-            });
-        }
-    });
-
-});
-
-/* comments route */
-app.get("/campgrounds/:id/comments/new", function (req, res) {
-    Campground.findById(req.params.id, function (err, campground) {
-        if (err) {
-            console.log("bad shit in campground comments");
-        } else {
-            res.render("comments/new", {
-                campground: campground
-            });
-        }
-    });
-
-
-});
-
-/* posting of the comment */
-app.post("/campgrounds/:id/comments", function (req, res) {
-    Campground.findById(req.params.id, function (err, campground) {
-        if (err) {
-            console.log("bad shit in campground display comments");
-            res.redirect("/campgrounds");
-        } else {
-            var newComments = {
-                text: req.body.textComment,
-                author: req.body.authorComment,
-            };
-            Comment.create({
-                text: newComments.text,
-                author: newComments.author
-            }, function (err, comment) {
-                if (err) {
-                    console.log("comment addition by user: " + err);
-                } else {
-                    campground.comments.push(comment);
-                    campground.save();
-                    res.redirect("/campgrounds/" + campground._id);
-                }
-            });
-
-        }
-    });
-});
 
 app.listen(3000, function () {
     console.log("yelp camp is running");
